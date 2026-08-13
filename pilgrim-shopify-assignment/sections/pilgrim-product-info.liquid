@@ -1,0 +1,646 @@
+{% comment %}
+  Section: pilgrim-product-info.liquid
+  Purpose: Production-quality custom product info section for Pilgrim.
+  Features:
+    - Product title, price, compare-at price, savings badge
+    - Dynamic variant selector (price + availability updates without page reload)
+    - Quantity stepper (+/–) with min/max guards
+    - AJAX Add to Cart with loading state, disabled state, and success/error feedback
+    - "Why Customers Love This Product" block with 3 Theme Editor-editable bullets
+    - Responsive two-column layout (stacked on mobile)
+    - Sold-out handling, variant validation
+    - Semantic HTML, ARIA labels, keyboard-accessible controls
+    - No external JS libraries; no inline styles; CSS scoped to BEM block
+  Author: Ravi Sharma
+{% endcomment %}
+
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign product_available = current_variant.available
+  assign variant_price = current_variant.price | default: 0
+  assign variant_compare_price = current_variant.compare_at_price | default: 0
+  assign has_compare_price = false
+  if variant_compare_price > variant_price
+    assign has_compare_price = true
+  endif
+-%}
+
+{{ 'pilgrim-product-info.css' | asset_url | stylesheet_tag }}
+
+<section
+  class="pilgrim-product-info"
+  aria-label="{{ product.title | escape }} — product information"
+  data-section-id="{{ section.id }}"
+  data-section-type="pilgrim-product-info"
+>
+  <div class="pilgrim-product-info__inner">
+
+    {%- comment -%} ── Left: Product Image ─────────────────────────────── {%- endcomment -%}
+    <div class="pilgrim-product-info__media">
+      <div class="pilgrim-product-info__image-wrapper">
+        {%- if product.featured_image -%}
+          <img
+            class="pilgrim-product-info__image"
+            src="{{ product.featured_image | image_url: width: 900 }}"
+            srcset="
+              {{ product.featured_image | image_url: width: 480 }} 480w,
+              {{ product.featured_image | image_url: width: 720 }} 720w,
+              {{ product.featured_image | image_url: width: 900 }} 900w
+            "
+            sizes="(min-width: 1024px) 55vw, (min-width: 768px) 50vw, 100vw"
+            alt="{{ product.featured_image.alt | default: product.title | escape }}"
+            width="900"
+            height="900"
+            loading="eager"
+            decoding="async"
+          >
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'pilgrim-product-info__image' }}
+        {%- endif -%}
+        {%- if section.settings.show_badge and section.settings.badge_text != blank -%}
+          <span class="pilgrim-product-info__badge">
+            {{ section.settings.badge_text }}
+          </span>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%} ── Right: Product Details ──────────────────────────── {%- endcomment -%}
+    <div class="pilgrim-product-info__content">
+
+      {%- comment -%} Vendor {%- endcomment -%}
+      {%- if product.vendor != blank -%}
+        <p class="pilgrim-product-info__vendor">{{ product.vendor }}</p>
+      {%- endif -%}
+
+      {%- comment -%} Title {%- endcomment -%}
+      <h1 class="pilgrim-product-info__title">{{ product.title }}</h1>
+
+      {%- comment -%} Price {%- endcomment -%}
+      <div
+        class="pilgrim-product-info__price-row"
+        id="ppi-price-row-{{ section.id }}"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="pilgrim-product-info__price" id="ppi-price-{{ section.id }}">
+          {{ current_variant.price | money }}
+        </span>
+        {%- if has_compare_price -%}
+          <span
+            class="pilgrim-product-info__price--compare"
+            id="ppi-compare-price-{{ section.id }}"
+            aria-label="Regular price {{ current_variant.compare_at_price | money }}"
+          >
+            {{ current_variant.compare_at_price | money }}
+          </span>
+          {%- assign savings_amount = variant_compare_price | minus: variant_price -%}
+          {%- assign savings_pct = savings_amount | times: 100 | divided_by: variant_compare_price | round -%}
+          <span class="pilgrim-product-info__price--savings" id="ppi-savings-{{ section.id }}">
+            {{ savings_pct }}% OFF
+          </span>
+        {%- else -%}
+          <span class="pilgrim-product-info__price--compare" id="ppi-compare-price-{{ section.id }}" hidden></span>
+          <span class="pilgrim-product-info__price--savings" id="ppi-savings-{{ section.id }}" hidden></span>
+        {%- endif -%}
+      </div>
+
+      <hr class="pilgrim-product-info__divider">
+
+      {%- comment -%} ── Variant Selector (hidden for single-variant products) ── {%- endcomment -%}
+      {%- unless product.has_only_default_variant -%}
+        <div class="pilgrim-product-info__variant-section">
+          <label
+            class="pilgrim-product-info__label"
+            for="ppi-variant-select-{{ section.id }}"
+          >
+            Variant
+          </label>
+          <div class="pilgrim-product-info__select-wrapper">
+            <select
+              id="ppi-variant-select-{{ section.id }}"
+              class="pilgrim-product-info__select"
+              name="id"
+              aria-describedby="ppi-availability-{{ section.id }}"
+              form="ppi-product-form-{{ section.id }}"
+            >
+              {%- for variant in product.variants -%}
+                <option
+                  value="{{ variant.id }}"
+                  {%- if variant == current_variant %} selected{%- endif -%}
+                  {%- unless variant.available %} data-sold-out="true"{%- endunless -%}
+                  data-price="{{ variant.price }}"
+                  data-compare-price="{{ variant.compare_at_price | default: 0 }}"
+                  data-available="{{ variant.available }}"
+                >
+                  {{ variant.title }}
+                  {%- unless variant.available %} — Sold out{%- endunless -%}
+                </option>
+              {%- endfor -%}
+            </select>
+            <svg
+              class="pilgrim-product-info__select-arrow"
+              width="14" height="14" viewBox="0 0 14 14"
+              fill="none" aria-hidden="true" focusable="false"
+            >
+              <path d="M2 5l5 5 5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      {%- endunless -%}
+
+      {%- comment -%} ── Availability Status ──────────────────────────── {%- endcomment -%}
+      <p
+        id="ppi-availability-{{ section.id }}"
+        class="pilgrim-product-info__availability {% if product_available %}pilgrim-product-info__availability--in-stock{% else %}pilgrim-product-info__availability--out-of-stock{% endif %}"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="pilgrim-product-info__availability-dot" aria-hidden="true"></span>
+        {%- if product_available -%}
+          In stock
+        {%- else -%}
+          Sold out
+        {%- endif -%}
+      </p>
+
+      {%- comment -%} ── Product Form ─────────────────────────────────── {%- endcomment -%}
+      {%- form 'product', product,
+        id: "ppi-product-form-{{ section.id }}",
+        novalidate: 'novalidate',
+        data-product-form: '',
+        class: 'pilgrim-product-info__form'
+      -%}
+        <input
+          type="hidden"
+          name="id"
+          id="ppi-variant-id-{{ section.id }}"
+          value="{{ current_variant.id }}"
+        >
+
+        {%- comment -%} Quantity Stepper {%- endcomment -%}
+        <div class="pilgrim-product-info__qty-section">
+          <label
+            class="pilgrim-product-info__label"
+            for="ppi-qty-input-{{ section.id }}"
+          >
+            Quantity
+          </label>
+          <div
+            class="pilgrim-product-info__qty-controls"
+            role="group"
+            aria-label="Quantity"
+          >
+            <button
+              type="button"
+              class="pilgrim-product-info__qty-btn"
+              id="ppi-qty-minus-{{ section.id }}"
+              aria-label="Decrease quantity"
+              data-qty-action="decrease"
+            >
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none" aria-hidden="true" focusable="false">
+                <path d="M1 1h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <input
+              type="number"
+              id="ppi-qty-input-{{ section.id }}"
+              class="pilgrim-product-info__qty-input"
+              name="quantity"
+              value="1"
+              min="1"
+              max="99"
+              pattern="[0-9]*"
+              inputmode="numeric"
+              aria-label="Quantity"
+            >
+            <button
+              type="button"
+              class="pilgrim-product-info__qty-btn"
+              id="ppi-qty-plus-{{ section.id }}"
+              aria-label="Increase quantity"
+              data-qty-action="increase"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+                <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {%- comment -%} Add to Cart Button {%- endcomment -%}
+        <button
+          type="submit"
+          id="ppi-atc-btn-{{ section.id }}"
+          class="pilgrim-product-info__atc-btn {% unless product_available %}pilgrim-product-info__atc-btn--sold-out{% endunless %}"
+          {%- unless product_available %} disabled aria-disabled="true"{%- endunless -%}
+          aria-label="{% if product_available %}Add to cart{% else %}Sold out{% endif %}"
+        >
+          <span class="pilgrim-product-info__spinner" role="status" aria-label="Loading"></span>
+          <span class="pilgrim-product-info__btn-text">
+            {%- if product_available -%}
+              Add to Cart
+            {%- else -%}
+              Sold Out
+            {%- endif -%}
+          </span>
+        </button>
+
+        {%- comment -%} Feedback message (ARIA live region) {%- endcomment -%}
+        <p
+          id="ppi-feedback-{{ section.id }}"
+          class="pilgrim-product-info__feedback"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
+
+      {%- endform -%}
+
+      <hr class="pilgrim-product-info__divider">
+
+      {%- comment -%} ── Why Customers Love This Product ──────────────── {%- endcomment -%}
+      {%- assign b1 = section.settings.benefit_1 -%}
+      {%- assign b2 = section.settings.benefit_2 -%}
+      {%- assign b3 = section.settings.benefit_3 -%}
+      {%- if b1 != blank or b2 != blank or b3 != blank -%}
+        <div class="pilgrim-product-info__benefits">
+          <p class="pilgrim-product-info__benefits-title">
+            {{ section.settings.benefits_heading | default: 'Why Customers Love This Product' }}
+          </p>
+          <ul class="pilgrim-product-info__benefits-list" role="list">
+            {%- if b1 != blank -%}
+              <li class="pilgrim-product-info__benefit-item">
+                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
+                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ b1 }}</span>
+              </li>
+            {%- endif -%}
+            {%- if b2 != blank -%}
+              <li class="pilgrim-product-info__benefit-item">
+                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
+                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ b2 }}</span>
+              </li>
+            {%- endif -%}
+            {%- if b3 != blank -%}
+              <li class="pilgrim-product-info__benefit-item">
+                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
+                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ b3 }}</span>
+              </li>
+            {%- endif -%}
+          </ul>
+        </div>
+      {%- endif -%}
+
+    </div>{%- comment -%} /.pilgrim-product-info__content {%- endcomment -%}
+  </div>{%- comment -%} /.pilgrim-product-info__inner {%- endcomment -%}
+</section>
+
+{%- comment -%}
+  Variant data island — encodes all variant data as JSON for JS without any
+  inline scripts or data-* sprawl across the DOM.
+{%- endcomment -%}
+<script id="ppi-variant-data-{{ section.id }}" type="application/json">
+  {
+    "sectionId": {{ section.id | json }},
+    "productUrl": {{ product.url | json }},
+    "cartAddUrl": {{ routes.cart_add_url | json }},
+    "currency": {{ cart.currency.iso_code | json }},
+    "moneyFormat": {{ shop.money_format | json }},
+    "variants": [
+      {%- for variant in product.variants -%}
+        {
+          "id": {{ variant.id }},
+          "title": {{ variant.title | json }},
+          "price": {{ variant.price | default: 0 }},
+          "compareAtPrice": {{ variant.compare_at_price | default: 0 }},
+          "available": {{ variant.available }},
+          "optionValues": {{ variant.options | json }}
+        }{%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    ]
+  }
+</script>
+
+<script>
+/**
+ * PilgrimProductInfo — Self-contained vanilla JS controller.
+ * Encapsulated in an IIFE to avoid global scope pollution.
+ * Uses the Cart AJAX API (routes.cart_add_url) for add-to-cart.
+ * Handles: variant switching, price updates, qty stepper, ATC loading state,
+ * sold-out state, error/success feedback, and accessible announcements.
+ */
+(function () {
+  'use strict';
+
+  const SECTION_ID = {{ section.id | json }};
+
+  function formatMoney(cents, format) {
+    if (typeof cents !== 'number') return '';
+    const amount = (cents / 100).toFixed(2);
+    return (format || '$' + '{{amount}}')
+      .replace(/\{\{\s*amount\s*\}\}/, amount)
+      .replace(/\{\{\s*amount_with_comma_separator\s*\}\}/, amount.replace('.', ','))
+      .replace(/\{\{\s*amount_no_decimals\s*\}\}/, Math.floor(cents / 100))
+      .replace(/\{\{\s*amount_no_decimals_with_comma_separator\s*\}\}/, Math.floor(cents / 100));
+  }
+
+  function initPilgrimProductInfo(sectionId) {
+    const dataEl = document.getElementById('ppi-variant-data-' + sectionId);
+    if (!dataEl) return;
+
+    let data;
+    try {
+      data = JSON.parse(dataEl.textContent);
+    } catch (e) {
+      console.error('[PilgrimProductInfo] Failed to parse variant data:', e);
+      return;
+    }
+
+    const { cartAddUrl, moneyFormat, variants } = data;
+
+    const el = {
+      section:        document.querySelector('[data-section-id="' + sectionId + '"]'),
+      variantSelect:  document.getElementById('ppi-variant-select-' + sectionId),
+      variantIdInput: document.getElementById('ppi-variant-id-' + sectionId),
+      price:          document.getElementById('ppi-price-' + sectionId),
+      comparePrice:   document.getElementById('ppi-compare-price-' + sectionId),
+      savings:        document.getElementById('ppi-savings-' + sectionId),
+      availability:   document.getElementById('ppi-availability-' + sectionId),
+      atcBtn:         document.getElementById('ppi-atc-btn-' + sectionId),
+      btnText:        document.querySelector('#ppi-atc-btn-' + sectionId + ' .pilgrim-product-info__btn-text'),
+      feedback:       document.getElementById('ppi-feedback-' + sectionId),
+      qtyInput:       document.getElementById('ppi-qty-input-' + sectionId),
+      qtyMinus:       document.getElementById('ppi-qty-minus-' + sectionId),
+      qtyPlus:        document.getElementById('ppi-qty-plus-' + sectionId),
+      form:           document.getElementById('ppi-product-form-' + sectionId),
+    };
+
+    if (!el.form) return;
+
+    const variantMap = Object.fromEntries((variants || []).map(v => [String(v.id), v]));
+
+    function getSelectedVariant() {
+      if (!el.variantSelect) {
+        return (variants && variants[0]) || null;
+      }
+      return variantMap[el.variantSelect.value] || null;
+    }
+
+    function updatePriceUI(variant) {
+      if (!variant || !el.price) return;
+
+      el.price.textContent = formatMoney(variant.price, moneyFormat);
+
+      const hasCompare = variant.compareAtPrice && variant.compareAtPrice > variant.price;
+      if (el.comparePrice) {
+        el.comparePrice.textContent = hasCompare ? formatMoney(variant.compareAtPrice, moneyFormat) : '';
+        el.comparePrice.hidden = !hasCompare;
+      }
+      if (el.savings) {
+        if (hasCompare) {
+          const pct = Math.round((variant.compareAtPrice - variant.price) / variant.compareAtPrice * 100);
+          el.savings.textContent = pct + '% OFF';
+          el.savings.hidden = false;
+        } else {
+          el.savings.textContent = '';
+          el.savings.hidden = true;
+        }
+      }
+    }
+
+    function updateAvailabilityUI(variant) {
+      if (!el.availability) return;
+      const available = variant && variant.available;
+      el.availability.className =
+        'pilgrim-product-info__availability ' +
+        (available
+          ? 'pilgrim-product-info__availability--in-stock'
+          : 'pilgrim-product-info__availability--out-of-stock');
+      el.availability.innerHTML =
+        '<span class="pilgrim-product-info__availability-dot" aria-hidden="true"></span>' +
+        (available ? 'In stock' : 'Sold out');
+    }
+
+    function updateATCButton(variant) {
+      if (!el.atcBtn || !el.btnText) return;
+      const available = variant && variant.available;
+      el.atcBtn.disabled = !available;
+      el.atcBtn.setAttribute('aria-disabled', !available);
+      el.atcBtn.classList.toggle('pilgrim-product-info__atc-btn--sold-out', !available);
+      el.btnText.textContent = available ? 'Add to Cart' : 'Sold Out';
+      el.atcBtn.setAttribute('aria-label', available ? 'Add to cart' : 'Sold out');
+    }
+
+    function onVariantChange() {
+      const variant = getSelectedVariant();
+
+      if (el.variantIdInput && variant) {
+        el.variantIdInput.value = variant.id;
+      }
+
+      updatePriceUI(variant);
+      updateAvailabilityUI(variant);
+      updateATCButton(variant);
+      clearFeedback();
+    }
+
+    function getQty() {
+      return parseInt(el.qtyInput.value, 10) || 1;
+    }
+
+    function setQty(val) {
+      const min = parseInt(el.qtyInput.min, 10) || 1;
+      const max = parseInt(el.qtyInput.max, 10) || 99;
+      const clamped = Math.min(Math.max(val, min), max);
+      el.qtyInput.value = clamped;
+
+      if (el.qtyMinus) el.qtyMinus.disabled = clamped <= min;
+      if (el.qtyPlus)  el.qtyPlus.disabled  = clamped >= max;
+    }
+
+    if (el.qtyMinus) {
+      el.qtyMinus.addEventListener('click', function () {
+        setQty(getQty() - 1);
+      });
+    }
+    if (el.qtyPlus) {
+      el.qtyPlus.addEventListener('click', function () {
+        setQty(getQty() + 1);
+      });
+    }
+    if (el.qtyInput) {
+      el.qtyInput.addEventListener('change', function () {
+        setQty(parseInt(this.value, 10) || 1);
+      });
+    }
+
+    function showFeedback(type, message) {
+      if (!el.feedback) return;
+      el.feedback.setAttribute('data-type', type);
+      el.feedback.textContent = message;
+    }
+
+    function clearFeedback() {
+      if (!el.feedback) return;
+      el.feedback.removeAttribute('data-type');
+      el.feedback.textContent = '';
+    }
+
+    function setLoading(loading) {
+      if (!el.atcBtn) return;
+      el.atcBtn.setAttribute('data-loading', loading ? 'true' : 'false');
+      el.atcBtn.disabled = loading;
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+      clearFeedback();
+
+      const variant = getSelectedVariant();
+
+      if (!variant) {
+        showFeedback('error', 'Please select a variant to continue.');
+        return;
+      }
+
+      if (!variant.available) {
+        showFeedback('error', 'This variant is currently sold out.');
+        return;
+      }
+
+      const qty = getQty();
+      if (qty < 1) {
+        showFeedback('error', 'Quantity must be at least 1.');
+        return;
+      }
+
+      setLoading(true);
+
+      fetch(cartAddUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          id: variant.id,
+          quantity: qty,
+        }),
+      })
+        .then(function (res) {
+          if (!res.ok) {
+            return res.json().then(function (body) {
+              throw new Error(body.description || body.message || 'Failed to add to cart.');
+            });
+          }
+          return res.json();
+        })
+        .then(function (item) {
+          showFeedback('success', '\u2713 ' + (item.title || 'Item') + ' added to your cart!');
+          document.dispatchEvent(new CustomEvent('cart:add', {
+            bubbles: true,
+            detail: { item: item },
+          }));
+        })
+        .catch(function (err) {
+          showFeedback('error', err.message || 'Something went wrong. Please try again.');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    if (el.variantSelect) {
+      el.variantSelect.addEventListener('change', onVariantChange);
+    }
+
+    el.form.addEventListener('submit', handleSubmit);
+
+    onVariantChange();
+    setQty(1);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      initPilgrimProductInfo(SECTION_ID);
+    });
+  } else {
+    initPilgrimProductInfo(SECTION_ID);
+  }
+
+  document.addEventListener('shopify:section:load', function (event) {
+    if (event.detail && event.detail.sectionId === SECTION_ID) {
+      initPilgrimProductInfo(SECTION_ID);
+    }
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Pilgrim Product Info",
+  "tag": "div",
+  "class": "shopify-section--pilgrim-product-info",
+  "limit": 1,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Product Badge"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Show badge",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Badge text",
+      "default": "New Arrival",
+      "info": "Displayed on the product image. Leave blank to hide."
+    },
+    {
+      "type": "header",
+      "content": "Why Customers Love This Product"
+    },
+    {
+      "type": "text",
+      "id": "benefits_heading",
+      "label": "Block heading",
+      "default": "Why Customers Love This Product"
+    },
+    {
+      "type": "text",
+      "id": "benefit_1",
+      "label": "Benefit bullet 1",
+      "default": "Clinically tested formula — visible results in just 4 weeks"
+    },
+    {
+      "type": "text",
+      "id": "benefit_2",
+      "label": "Benefit bullet 2",
+      "default": "Powered by world-sourced ingredients from Korea & France"
+    },
+    {
+      "type": "text",
+      "id": "benefit_3",
+      "label": "Benefit bullet 3",
+      "default": "Dermatologist approved, free from parabens and sulphates"
+    }
+  ]
+}
+{% endschema %}

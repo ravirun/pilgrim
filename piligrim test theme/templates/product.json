@@ -1,20 +1,18 @@
-/*
- * ------------------------------------------------------------
- * IMPORTANT: The contents of this file are auto-generated.
- *
- * This file may be updated by the Shopify admin theme editor
- * or related systems. Please exercise caution as any changes
- * made to this file may be overwritten.
- * ------------------------------------------------------------
- */
 {
   "sections": {
-    "main": {
-      "type": "product",
-      "settings": {}
+    "pilgrim-product-info": {
+      "type": "pilgrim-product-info",
+      "settings": {
+        "show_badge": true,
+        "badge_text": "New Arrival",
+        "benefits_heading": "Why Customers Love This Product",
+        "benefit_1": "Clinically tested formula — visible results in just 4 weeks",
+        "benefit_2": "Powered by world-sourced ingredients from Korea & France",
+        "benefit_3": "Dermatologist approved, free from parabens and sulphates"
+      }
     }
   },
   "order": [
-    "main"
+    "pilgrim-product-info"
   ]
 }
