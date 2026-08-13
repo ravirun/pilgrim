@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "shopify-plugin": "github:Shopify/shopify-ai-toolkit"
+  }
+}

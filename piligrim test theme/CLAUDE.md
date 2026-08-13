@@ -1,0 +1,1 @@
+/Users/misfit.ravi/pilgrim/piligrim test theme/AGENTS.md
