@@ -1,0 +1,15 @@
+{% comment %}
+  Snippet: icon-plus.liquid
+  Usage: {% render 'icon-plus', class: 'custom-class' %}
+{% endcomment %}
+<svg
+  class="{{ class | default: 'icon icon-plus' }}"
+  width="12"
+  height="12"
+  viewBox="0 0 12 12"
+  fill="none"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+</svg>

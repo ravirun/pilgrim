@@ -211,6 +211,8 @@
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--ppi-color-muted);
+  width: 14px;
+  height: 14px;
 }
 
 /* ─── Quantity Controls ──────────────────────────────────────────────────── */
@@ -245,6 +247,12 @@
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.pilgrim-product-info__qty-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .pilgrim-product-info__qty-btn:hover:not(:disabled) {
@@ -416,6 +424,8 @@
   flex-shrink: 0;
   width: 1.125rem;
   height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
   margin-top: 0.125rem;
   color: var(--ppi-color-accent);
 }

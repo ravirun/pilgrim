@@ -7,6 +7,7 @@
     - Quantity stepper (+/–) with min/max guards
     - AJAX Add to Cart with loading state, disabled state, and success/error feedback
     - "Why Customers Love This Product" block with 3 Theme Editor-editable bullets
+    - Modular SVG icons rendered via Liquid snippets (icon-caret, icon-minus, icon-plus, icon-check)
     - Responsive two-column layout (stacked on mobile)
     - Sold-out handling, variant validation
     - Semantic HTML, ARIA labels, keyboard-accessible controls
@@ -32,6 +33,17 @@
   aria-label="{{ product.title | escape }} — product information"
   data-section-id="{{ section.id }}"
   data-section-type="pilgrim-product-info"
+  style="
+    --ppi-color-bg: {{ settings.background_color | default: '#ffffff' }};
+    --ppi-color-text: {{ settings.foreground_color | default: '#1a1a1a' }};
+    --ppi-color-accent: {{ settings.ppi_accent_color | default: '#c9a96e' }};
+    --ppi-color-primary: {{ settings.ppi_primary_btn_color | default: '#1a1a1a' }};
+    --ppi-color-primary-fg: {{ settings.ppi_primary_btn_text_color | default: '#ffffff' }};
+    --ppi-color-success: {{ settings.ppi_success_color | default: '#16a34a' }};
+    --ppi-color-sold-out: {{ settings.ppi_sold_out_color | default: '#9ca3af' }};
+    --ppi-color-compare: {{ settings.ppi_sold_out_color | default: '#9ca3af' }};
+    --ppi-color-badge-bg: {{ settings.ppi_badge_bg_color | default: '#fdf6ec' }};
+  "
 >
   <div class="pilgrim-product-info__inner">
 
@@ -138,13 +150,7 @@
                 </option>
               {%- endfor -%}
             </select>
-            <svg
-              class="pilgrim-product-info__select-arrow"
-              width="14" height="14" viewBox="0 0 14 14"
-              fill="none" aria-hidden="true" focusable="false"
-            >
-              <path d="M2 5l5 5 5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            {% render 'icon-caret', class: 'pilgrim-product-info__select-arrow' %}
           </div>
         </div>
       {%- endunless -%}
@@ -198,9 +204,7 @@
               aria-label="Decrease quantity"
               data-qty-action="decrease"
             >
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none" aria-hidden="true" focusable="false">
-                <path d="M1 1h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-              </svg>
+              {% render 'icon-minus' %}
             </button>
             <input
               type="number"
@@ -221,9 +225,7 @@
               aria-label="Increase quantity"
               data-qty-action="increase"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
-                <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-              </svg>
+              {% render 'icon-plus' %}
             </button>
           </div>
         </div>
@@ -271,28 +273,19 @@
           <ul class="pilgrim-product-info__benefits-list" role="list">
             {%- if b1 != blank -%}
               <li class="pilgrim-product-info__benefit-item">
-                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
-                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
-                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                {% render 'icon-check', class: 'pilgrim-product-info__benefit-icon' %}
                 <span>{{ b1 }}</span>
               </li>
             {%- endif -%}
             {%- if b2 != blank -%}
               <li class="pilgrim-product-info__benefit-item">
-                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
-                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
-                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                {% render 'icon-check', class: 'pilgrim-product-info__benefit-icon' %}
                 <span>{{ b2 }}</span>
               </li>
             {%- endif -%}
             {%- if b3 != blank -%}
               <li class="pilgrim-product-info__benefit-item">
-                <svg class="pilgrim-product-info__benefit-icon" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
-                  <circle cx="9" cy="9" r="8.25" stroke="currentColor" stroke-width="1.25"/>
-                  <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                {% render 'icon-check', class: 'pilgrim-product-info__benefit-icon' %}
                 <span>{{ b3 }}</span>
               </li>
             {%- endif -%}

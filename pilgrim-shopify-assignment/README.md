@@ -17,6 +17,11 @@ This submission contains a production-quality **custom Shopify product page sect
 pilgrim-shopify-assignment/
 ├── sections/
 │   └── pilgrim-product-info.liquid   ← Main section (Liquid + JS + schema)
+├── snippets/
+│   ├── icon-caret.liquid             ← Reusable dropdown arrow SVG snippet
+│   ├── icon-minus.liquid             ← Reusable stepper minus SVG snippet
+│   ├── icon-plus.liquid              ← Reusable stepper plus SVG snippet
+│   └── icon-check.liquid             ← Reusable benefit checkmark SVG snippet
 ├── assets/
 │   └── pilgrim-product-info.css      ← Scoped section styles
 ├── screenshots/
@@ -30,8 +35,9 @@ pilgrim-shopify-assignment/
 ## Installation
 
 1. Copy `sections/pilgrim-product-info.liquid` → your theme's `sections/` directory.
-2. Copy `assets/pilgrim-product-info.css` → your theme's `assets/` directory.
-3. Update `templates/product.json` to include the section:
+2. Copy `snippets/icon-*.liquid` → your theme's `snippets/` directory.
+3. Copy `assets/pilgrim-product-info.css` → your theme's `assets/` directory.
+4. Update `templates/product.json` to include the section:
 
 ```json
 {
@@ -45,7 +51,7 @@ pilgrim-shopify-assignment/
 }
 ```
 
-4. Open the Theme Editor to customise the three editable bullet points under **"Why Customers Love This Product"**.
+5. Open the Theme Editor to customise the three editable bullet points under **"Why Customers Love This Product"**.
 
 ---
 
@@ -62,9 +68,10 @@ pilgrim-shopify-assignment/
 | Add to Cart | AJAX via `routes.cart_add_url` Cart API |
 | Benefit Bullets | 3 × `type: "text"` in `{% schema %}`, editable in Theme Editor |
 
-### Bonus Features
+### Bonus Features & Architecture Highlights
 | Feature | Detail |
 |---|---|
+| Modular SVG Snippets | Inline SVGs extracted into reusable `snippets/icon-*.liquid` files |
 | Loading state | Spinning SVG + opacity on button text during fetch |
 | Disabled state | Button disabled + `aria-disabled` while submitting |
 | Variant validation | Shows inline error if variant unavailable |
@@ -84,8 +91,9 @@ pilgrim-shopify-assignment/
 
 ## Technical Architecture
 
-### Liquid
+### Liquid & Snippets
 - Uses `product.selected_or_first_available_variant` for correct initial state.
+- Extracted all SVG icons into clean, modular Liquid snippets (`icon-caret.liquid`, `icon-minus.liquid`, `icon-plus.liquid`, `icon-check.liquid`) to keep the section template clean and SVG assets reusable.
 - Variant data serialised as a `<script type="application/json">` island — avoids `data-*` attribute sprawl and keeps Liquid/JS coupling minimal.
 - Schema settings provide sensible defaults so the reviewer sees content immediately in the Theme Editor.
 - `{% unless product.has_only_default_variant %}` hides the select for single-variant products.
@@ -116,12 +124,13 @@ pilgrim-shopify-assignment/
 5. **Add to cart** — observe loading spinner, button disabled, success message.
 6. **Select sold-out variant** — button becomes "Sold Out", disabled.
 7. **Resize to mobile** — show stacked single-column layout, full-width ATC button.
-8. **Brief code walk** — show schema, JS IIFE, CSS BEM tokens.
+8. **Brief code walk** — show schema, modular Liquid icon snippets, JS IIFE, CSS BEM tokens.
 
 ---
 
 ## Design Decisions
 
+- **Modular SVG Snippets** — Keeps HTML lean and decouples icon assets from template markup following Shopify theme design patterns.
 - **No JS framework** — Shopify themes ship to millions of users; shipping React/Vue for a product form is wasteful. Vanilla JS keeps the bundle at ~3 KB.
 - **JSON data island** — decouples Liquid rendering from JS logic. No hidden `<input>` arrays, no template literals with Liquid inside JS strings.
 - **BEM + CSS Custom Properties** — BEM scopes styles to the section; custom properties make the palette trivially overridable by the theme's global design tokens.
