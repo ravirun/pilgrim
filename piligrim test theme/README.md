@@ -1,160 +1,122 @@
-<h1 align="center" style="position: relative;">
-  <br>
-    <img src="./assets/shoppy-x-ray.svg" alt="logo" width="200">
-  <br>
-  Shopify Skeleton Theme
-</h1>
+# Pilgrim — Senior Shopify Developer Technical Assignment
 
-A minimal, carefully structured Shopify theme designed to help you quickly get started. Designed with modularity, maintainability, and Shopify's best practices in mind.
+> **Author:** Ravi Sharma  
+> **Position:** Senior Shopify Developer  
+> **Time taken:** ~3 hours  
+> **Submitted:** August 2026
 
-<p align="center">
-  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
-  <a href="./actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Shopify/skeleton-theme/actions/workflows/ci.yml/badge.svg"></a>
-</p>
+---
 
-## Getting started
+## Overview
 
-### Prerequisites
+Production-quality **custom Shopify product page section** built with Liquid, HTML, CSS, and vanilla JavaScript — no external libraries, no build tools required.
 
-Before starting, ensure you have the latest Shopify CLI installed:
+### Relevant Files
 
-- [Shopify CLI](https://shopify.dev/docs/api/shopify-cli) – helps you download, upload, preview themes, and streamline your workflows
-
-If you use VS Code:
-
-- [Shopify Liquid VS Code Extension](https://shopify.dev/docs/storefronts/themes/tools/shopify-liquid-vscode) – provides syntax highlighting, linting, inline documentation, and auto-completion specifically designed for Liquid templates
-
-### Clone
-
-Clone this repository using Git or Shopify CLI:
-
-```bash
-git clone git@github.com:Shopify/skeleton-theme.git
-# or
-shopify theme init
+```
+sections/pilgrim-product-info.liquid   ← Main section (Liquid + schema)
+snippets/
+  icon-caret.liquid                    ← Dropdown arrow SVG
+  icon-minus.liquid                    ← Qty stepper minus SVG
+  icon-plus.liquid                     ← Qty stepper plus SVG
+  icon-check.liquid                    ← Benefit checkmark SVG
+assets/
+  pilgrim-product-info.css             ← Scoped BEM styles
+  pilgrim-product-info.js              ← JS controller (loaded with defer)
+config/settings_schema.json            ← Theme settings (Product Section Colors group)
+screenshots/
+  desktop.png                          ← Desktop layout
+  mobile.png                           ← Mobile layout
 ```
 
-### Preview
+---
 
-Preview this theme using Shopify CLI:
+## Installation
 
-```bash
-shopify theme dev
+1. Copy `sections/pilgrim-product-info.liquid` → theme `sections/`
+2. Copy `snippets/icon-*.liquid` → theme `snippets/`
+3. Copy `assets/pilgrim-product-info.css` and `assets/pilgrim-product-info.js` → theme `assets/`
+4. Merge the "Product Section Colors" group from `config/settings_schema.json` into your theme's schema.
+5. Update `templates/product.json`:
+
+```json
+{
+  "sections": {
+    "pilgrim-product-info": {
+      "type": "pilgrim-product-info",
+      "settings": {}
+    }
+  },
+  "order": ["pilgrim-product-info"]
+}
 ```
 
-## Theme architecture
+6. Open Theme Editor to customise benefit bullets under **"Why Customers Love This Product"**.
 
-```bash
-.
-├── assets          # Stores static assets (CSS, JS, images, fonts, etc.)
-├── blocks          # Reusable, nestable, customizable UI components
-├── config          # Global theme settings and customization options
-├── layout          # Top-level wrappers for pages (layout templates)
-├── locales         # Translation files for theme internationalization
-├── sections        # Modular full-width page components
-├── snippets        # Reusable Liquid code or HTML fragments
-└── templates       # Templates combining sections to define page structures
-```
+---
 
-To learn more, refer to the [theme architecture documentation](https://shopify.dev/docs/storefronts/themes/architecture).
+## Features
 
-### Templates
+### Core Requirements
+| Feature | Implementation |
+|---|---|
+| Product Title | `{{ product.title }}` — semantic `<h1>` |
+| Price | `{{ variant.price | money }}` — live-updates on variant change |
+| Compare-at price | Strikethrough + % savings badge |
+| Variant Selector | `<select>` driven by JSON data island |
+| Quantity Selector | Custom stepper (+/–) with min/max guards |
+| Add to Cart | AJAX via `routes.cart_add_url` Cart API |
+| Benefit Bullets | 3 × `type: "text"` in `{% schema %}`, editable in Theme Editor |
 
-[Templates](https://shopify.dev/docs/storefronts/themes/architecture/templates#template-types) control what's rendered on each type of page in a theme.
+### Bonus & Architecture
+| Feature | Detail |
+|---|---|
+| Section Rendering API | Sends `sections: [sectionId]` in AJAX `/cart/add.js` payload; returns re-rendered section HTML for cart drawers |
+| Deferred JS | External `pilgrim-product-info.js` loaded with `defer` — zero render-blocking |
+| Modular SVG Snippets | Icons extracted into reusable `snippets/icon-*.liquid` files |
+| Theme Settings Integration | Colors configurable via `settings_schema.json` → CSS custom properties |
+| Loading state | Spinner + opacity on ATC button during fetch |
+| Variant validation | Inline error if variant unavailable |
+| Sold-out handling | Button disabled, text → "Sold Out", availability indicator updates |
+| Responsive layout | CSS Grid: 1 column mobile, 55/45 split desktop |
+| Accessible | `aria-live`, `aria-label`, `role="group"`, `:focus-visible`, `prefers-reduced-motion` |
+| No external libraries | Zero dependencies — vanilla JS (~3 KB), no jQuery |
+| Scoped CSS | BEM + CSS Custom Properties, no `!important` |
+| `routes.cart_add_url` | Correct Shopify Cart AJAX endpoint |
+| Theme Editor reload | `shopify:section:load` event re-initialises controller |
 
-The Skeleton Theme scaffolds [JSON templates](https://shopify.dev/docs/storefronts/themes/architecture/templates/json-templates) to make it easy for merchants to customize their store.
+---
 
-None of the template types are required, and not all of them are included in the Skeleton Theme. Refer to the [template types reference](https://shopify.dev/docs/storefronts/themes/architecture/templates#template-types) for a full list.
+## Technical Architecture
 
-### Sections
+### Liquid & Snippets
+- `product.selected_or_first_available_variant` for correct initial state
+- SVG icons in modular snippets (`icon-caret`, `icon-minus`, `icon-plus`, `icon-check`)
+- Variant data as `<script type="application/json">` island — decouples Liquid from JS
+- `{% unless product.has_only_default_variant %}` hides select for single-variant products
 
-[Sections](https://shopify.dev/docs/storefronts/themes/architecture/sections) are Liquid files that allow you to create reusable modules of content that can be customized by merchants. They can also include blocks which allow merchants to add, remove, and reorder content within a section.
+### CSS
+- BEM methodology: `.pilgrim-product-info__element--modifier`
+- CSS Custom Properties (design tokens) on root block, overridden by theme settings
+- `clamp()` for fluid typography, `aspect-ratio` for image, `fit-content` for qty stepper
+- `@media (prefers-reduced-motion)` disables animations
 
-Sections are made customizable by including a `{% schema %}` in the body. For more information, refer to the [section schema documentation](https://shopify.dev/docs/storefronts/themes/architecture/sections/section-schema).
+### JavaScript
+- External file loaded with `defer` — non-blocking, executes after DOM parse
+- Auto-discovers sections via `[data-section-type]` — no Liquid inside JS
+- AJAX `fetch()` to `routes.cart_add_url` with error body parsing
+- Dispatches `cart:add` custom event for cart drawer integrations
 
-### Blocks
+---
 
-[Blocks](https://shopify.dev/docs/storefronts/themes/architecture/blocks) let developers create flexible layouts by breaking down sections into smaller, reusable pieces of Liquid. Each block has its own set of settings, and can be added, removed, and reordered within a section.
+## Loom Walkthrough Script
 
-Blocks are made customizable by including a `{% schema %}` in the body. For more information, refer to the [block schema documentation](https://shopify.dev/docs/storefronts/themes/architecture/blocks/theme-blocks/schema).
-
-## Schemas
-
-When developing components defined by schema settings, we recommend these guidelines to simplify your code:
-
-- **Single property settings**: For settings that correspond to a single CSS property, use CSS variables:
-
-  ```liquid
-  <div class="collection" style="--gap: {{ block.settings.gap }}px">
-    ...
-  </div>
-
-  {% stylesheet %}
-    .collection {
-      gap: var(--gap);
-    }
-  {% endstylesheet %}
-
-  {% schema %}
-  {
-    "settings": [{
-      "type": "range",
-      "label": "gap",
-      "id": "gap",
-      "min": 0,
-      "max": 100,
-      "unit": "px",
-      "default": 0,
-    }]
-  }
-  {% endschema %}
-  ```
-
-- **Multiple property settings**: For settings that control multiple CSS properties, use CSS classes:
-
-  ```liquid
-  <div class="collection {{ block.settings.layout }}">
-    ...
-  </div>
-
-  {% stylesheet %}
-    .collection--full-width {
-      /* multiple styles */
-    }
-    .collection--narrow {
-      /* multiple styles */
-    }
-  {% endstylesheet %}
-
-  {% schema %}
-  {
-    "settings": [{
-      "type": "select",
-      "id": "layout",
-      "label": "layout",
-      "values": [
-        { "value": "collection--full-width", "label": "t:options.full" },
-        { "value": "collection--narrow", "label": "t:options.narrow" }
-      ]
-    }]
-  }
-  {% endschema %}
-  ```
-
-## CSS & JavaScript
-
-For CSS and JavaScript, we recommend using the [`{% stylesheet %}`](https://shopify.dev/docs/api/liquid/tags#stylesheet) and [`{% javascript %}`](https://shopify.dev/docs/api/liquid/tags/javascript) tags. They can be included multiple times, but the code will only appear once.
-
-### `critical.css`
-
-The Skeleton Theme explicitly separates essential CSS necessary for every page into a dedicated `critical.css` file.
-
-## Contributing
-
-We're excited for your contributions to the Skeleton Theme! This repository aims to remain as lean, lightweight, and fundamental as possible, and we kindly ask your contributions to align with this intention.
-
-Visit our [CONTRIBUTING.md](./CONTRIBUTING.md) for a detailed overview of our process, guidelines, and recommendations.
-
-## License
-
-Skeleton Theme is open-sourced under the [MIT](./LICENSE.md) License.
+1. **Desktop layout** — 2-column grid, image, title, price, variant selector
+2. **Change variant** — price/savings update live (no page reload)
+3. **Theme Editor** — edit benefit bullets, show live preview
+4. **Theme Settings** — change Product Section Colors, show live color update
+5. **Quantity stepper** — increment/decrement, button disables at min
+6. **Add to cart** — loading spinner, disabled state, success message
+7. **Sold-out variant** — button → "Sold Out", disabled
+8. **Mobile** — stacked single-column layout
+9. **Code walk** — schema, snippets, deferred JS, BEM CSS tokens
